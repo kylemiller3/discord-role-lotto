@@ -32,10 +32,14 @@ function hour_timer() {
         if (server.winner_is_on) {
             server.reduce_time()
             server.write_settings()
-                .catch(err => {
-                    msg.reply('Error ' + err)
-                    logger.error(err)
-                })
+            .then(() => {
+                const msg = server.winner_str
+                server.send_message(msg )
+            })
+            .catch(err => {
+                msg.reply('Error ' + err)
+                logger.error(err)
+            })
         }
         
         if (server.time_expired) {
@@ -43,28 +47,39 @@ function hour_timer() {
             server.remove_role(id)
             if (server.is_configured) {
                 new_roll(server)
-                    .catch(err => {
-                        msg.reply('Error ' + err)
-                        logger.error(err)
-                    })
+                .catch(err => {
+                    msg.reply('Error ' + err)
+                    logger.error(err)
+                })
             }
         }
     }
 }
 
+client.on('error', function (error) {
+    logger.error('Unexpected error')
+    logger.error(error.message)
+    logger.error(error.filename)
+    logger.error(error.lineNumber)
+})
+
+var once = true
 client.on('ready', function (evt) {
     logger.info('Connected')
     logger.info('Logged in as: ')
     logger.info(client.user.username + ' - (' + client.user.id + ')')
     
-    logger.info("Servers:")
-    client.guilds.forEach((guild) => {
-        logger.info(' - ' + guild.name + ' (' + guild.id + ')')
-        logger.info('Reading settings')
-        servers[guild.id] = new Server(guild.id, guild)
-    })
-    
-    setInterval(hour_timer, 1000 * 60 * 60)
+    if(once) {
+        logger.info("Servers:")
+        client.guilds.forEach((guild) => {
+            logger.info(' - ' + guild.name + ' (' + guild.id + ')')
+            logger.info('Reading settings')
+            servers[guild.id] = new Server(guild.id, guild)
+        })
+        
+        setInterval(hour_timer, 1000 * 60 * 60)
+        once = false
+    }
 })
 
 client.on('guildMemberRemove', member => {
@@ -77,10 +92,10 @@ client.on('guildMemberRemove', member => {
         server.send_message('Our kang has left ;-;')
         if (server.is_configured) {
             new_roll(server)
-                .catch(err => {
-                    msg.reply('Error ' + err)
-                    logger.error(err)
-                })
+            .catch(err => {
+                msg.reply('Error ' + err)
+                logger.error(err)
+            })
         }
     }
 })
@@ -102,13 +117,13 @@ client.on('message', msg => {
                             if(channel) {
                                 server.channel = channel.id
                                 server.write_settings()
-                                    .then(() => {
-                                        msg.reply('Set channel <#' + channel.id + '>')
-                                    })
-                                    .catch(err => {
-                                        msg.reply('Error ' + err)
-                                        logger.error(err)
-                                    })
+                                .then(() => {
+                                    msg.reply('Set channel <#' + channel.id + '>')
+                                })
+                                .catch(err => {
+                                    msg.reply('Error ' + err)
+                                    logger.error(err)
+                                })
                             }
                             break
                             
@@ -117,13 +132,13 @@ client.on('message', msg => {
                             if(role) {
                                 server.role = role.id
                                 server.write_settings()
-                                    .then(() => {
-                                        msg.reply('Set role <@&' + role.id + '>')
-                                    })
-                                    .catch(err => {
-                                        msg.reply('Error ' + err)
-                                        logger.error(err)
-                                    })
+                                .then(() => {
+                                    msg.reply('Set role <@&' + role.id + '>')
+                                })
+                                .catch(err => {
+                                    msg.reply('Error ' + err)
+                                    logger.error(err)
+                                })
                             }
                             break
                             
@@ -132,95 +147,95 @@ client.on('message', msg => {
                             if(hours) {
                                 server.hours = hours
                                 server.write_settings()
-                                    .then(() => {
-                                        msg.reply('Set hours ' + hours)
-                                    })
-                                    .catch(err => {
-                                        msg.reply('Error ' + err)
-                                        logger.error(err)
-                                    })
-                            }
-                            break
-                        
-                        case 'default':
-                            break
-                    }
-                    break
-                
-                case 'get':
-                    switch(commands.shift()) {
-                        case 'channel':
-                            msg.reply('Channel set <#' + server.channel + '>')
-                            break
-                        case 'role':
-                            msg.reply('Role set <@&' + server.role + '>')
-                            break
-                        case 'hours':
-                            msg.reply('Hours set ' + server.hours)
-                            break
-                        case 'winners':
-                            if(server.has_winner) {
-                                msg.reply('Lucky winners: ' + server.winners_str)
-                            } else {
-                                msg.reply('There are no winners ;-;')
-                            }
-                            break
-                        case 'default':
-                            break
-                    }
-                    break
-                
-                case 'skip':
-                    if (server.is_configured) {
-                        const id = server.remove_winner()
-                        server.remove_role(id)
-                        if (server.has_winner) {
-                            server.write_settings()
                                 .then(() => {
-                                    const id = server.winner
-                                    return server.add_role(id)
-                                })
-                                .then(() => {
-                                    return server.congratulate_winner()
+                                    msg.reply('Set hours ' + hours)
                                 })
                                 .catch(err => {
                                     msg.reply('Error ' + err)
                                     logger.error(err)
                                 })
-                        } else {
-                            new_roll(server)
-                                .catch(err => {
-                                    msg.reply('Error ' + err)
-                                    logger.error(err)
-                                })
-                        }
-                    } else {
-                        msg.reply('Settings need to be configured still')
+                            }
+                            break
+                            
+                        case 'default':
+                            break
                     }
                     break
                     
-                case 'go':
-                    if (server.is_configured) {
-                        const id = server.winner
-                        server.remove_role(id)
-                        new_roll(server)
-                            .catch(err => {
-                                msg.reply('Error ' + err)
-                                logger.error(err)
-                            })
-                    } else {
-                        msg.reply('Settings need to be configured still')
-                    }
-                    
-                    break
-                    
-                case 'default':
-                    break
+                        case 'get':
+                            switch(commands.shift()) {
+                                case 'channel':
+                                    msg.reply('Channel set <#' + server.channel + '>')
+                                    break
+                                case 'role':
+                                    msg.reply('Role set <@&' + server.role + '>')
+                                    break
+                                case 'hours':
+                                    msg.reply('Hours set ' + server.hours)
+                                    break
+                                case 'winners':
+                                    if(server.has_winner) {
+                                        msg.reply('Lucky winners: ' + server.winners_str)
+                                    } else {
+                                        msg.reply('There are no winners ;-;')
+                                    }
+                                    break
+                                case 'default':
+                                    break
+                            }
+                            break
+                            
+                                case 'skip':
+                                    if (server.is_configured) {
+                                        const id = server.remove_winner()
+                                        server.remove_role(id)
+                                        if (server.has_winner) {
+                                            server.write_settings()
+                                            .then(() => {
+                                                const id = server.winner
+                                                return server.add_role(id)
+                                            })
+                                            .then(() => {
+                                                return server.congratulate_winner()
+                                            })
+                                            .catch(err => {
+                                                msg.reply('Error ' + err)
+                                                logger.error(err)
+                                            })
+                                        } else {
+                                            new_roll(server)
+                                            .catch(err => {
+                                                msg.reply('Error ' + err)
+                                                logger.error(err)
+                                            })
+                                        }
+                                    } else {
+                                        msg.reply('Settings need to be configured still')
+                                    }
+                                    break
+                                    
+                                case 'go':
+                                    if (server.is_configured) {
+                                        const id = server.winner
+                                        server.remove_role(id)
+                                        new_roll(server)
+                                        .catch(err => {
+                                            msg.reply('Error ' + err)
+                                            logger.error(err)
+                                        })
+                                    } else {
+                                        msg.reply('Settings need to be configured still')
+                                    }
+                                    
+                                    break
+                                    
+                                case 'default':
+                                    break
             }
             break
             
-        case 'default':
-            break
+                                case 'default':
+                                    break
     }
 })
 
@@ -229,12 +244,12 @@ function new_roll(server) {
     server.add_winner(id)
     logger.debug('Picked new winner ' + id)
     return server.write_settings()
-        .then(() => {
-            return server.add_role(id)
-        })
-        .then(() => {
-            return server.congratulate_winner()
-        })
+    .then(() => {
+        return server.add_role(id)
+    })
+    .then(() => {
+        return server.congratulate_winner()
+    })
 }
 
 class Winner {
@@ -259,25 +274,25 @@ class Server {
         this._ready = false
         
         jsonfile.readFile('./servers/' + this.id + '.json')
-            .then(settings => { 
-                this.channel = settings['Channel']
-                this.role = settings['Role']
-                this.hours = settings['Hours']
-                const winners = settings['Winners']
-                winners.forEach(winner => {
-                    this._winners.push(new Winner(winner['id'], winner['hours']))
-                })
+        .then(settings => { 
+            this.channel = settings['Channel']
+            this.role = settings['Role']
+            this.hours = settings['Hours']
+            const winners = settings['Winners']
+            winners.forEach(winner => {
+                this._winners.push(new Winner(winner['id'], winner['hours']))
             })
-            .catch(err => {
-                if(err.errno == -2) {
-                    logger.info('No server settings found')
-                } else {
-                    logger.error(err)
-                }
-            })
-            .then(() => {
-                this._ready = true
-            })
+        })
+        .catch(err => {
+            if(err.errno == -2) {
+                logger.info('No server settings found')
+            } else {
+                logger.error(err)
+            }
+        })
+        .then(() => {
+            this._ready = true
+        })
     }
     
     get is_ready() {
@@ -286,8 +301,12 @@ class Server {
     
     get is_configured() {
         return this.channel != null &&
-            this.role != null &&
-            this.hours != null
+        this.role != null &&
+        this.hours != null
+    }
+    
+    get winner_str() {
+        return this._winners[0].toString()
     }
     
     get winners_str() {
